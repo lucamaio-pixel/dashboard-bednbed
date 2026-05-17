@@ -21,6 +21,11 @@ export function useSheetData(appsScriptUrl: string) {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json: DashboardData = await res.json();
+      // Compatibilità: aggiungi saldo default se mancante
+      json.strutture = json.strutture.map(s => ({
+        ...s,
+        saldo: s.saldo ?? { banca: 0, cash: 0, cassaforte: 0, postepay: 0 },
+      }));
       setData(json);
       setIsDemo(false);
       setLastRefresh(new Date());

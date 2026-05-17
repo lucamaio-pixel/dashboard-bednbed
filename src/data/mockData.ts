@@ -1,5 +1,6 @@
 import { DashboardData } from '../types';
 
+
 export const mockData: DashboardData = {
   timestamp: new Date().toISOString(),
   strutture: [
@@ -55,6 +56,7 @@ export const mockData: DashboardData = {
         { categoria: 'PRODOTTI PULIZIA', totale: 79,   mensili: { GEN: 0,   FEB: 0,   MAR: 0,   APR: 0,   MAG: 79  } },
         { categoria: 'COMMERCIALISTA',   totale: 15,   mensili: { GEN: 2,   FEB: 0,   MAR: 13,  APR: 0,   MAG: 0   } },
       ],
+      saldo: { banca: 1200, cash: 450, cassaforte: 0, postepay: 0 },
     },
     {
       id: 'atelier',
@@ -82,6 +84,7 @@ export const mockData: DashboardData = {
         { categoria: 'TARI',             totale: 126,  mensili: { GEN: 126, FEB: 0,   MAR: 0,   APR: 0,   MAG: 0  } },
         { categoria: 'ARREDAMENTO',      totale: 90,   mensili: { GEN: 0,   FEB: 0,   MAR: 0,   APR: 0,   MAG: 90 } },
       ],
+      saldo: { banca: 3793.47, cash: 189.66, cassaforte: 500, postepay: 0 },
     },
     {
       id: 'ganzirri',
@@ -134,6 +137,7 @@ export const mockData: DashboardData = {
         { categoria: 'RIPROTEZIONE OSPITI',   totale: 6900, mensili: { GEN: 1500,FEB: 2000,MAR: 0,   APR: 1000,MAG: 2400 } },
         { categoria: 'DIVIDENDO',             totale: 1500, mensili: { GEN: 0,   FEB: 0,   MAR: 0,   APR: 0,   MAG: 1500 } },
       ],
+      saldo: { banca: 2100, cash: 320, cassaforte: 0, postepay: 0 },
     },
   ],
 };

@@ -8,6 +8,7 @@ import CumulativeChart from './components/CumulativeChart';
 import SpesePieChart from './components/SpesePieChart';
 import RecentTransactions from './components/RecentTransactions';
 import ConfigModal from './components/ConfigModal';
+import DisponibilitaCassa from './components/DisponibilitaCassa';
 import { MONTHS_FULL } from './utils/formatters';
 
 function consolidateKPI(strutture: Struttura[]): KPIData[] {
@@ -88,6 +89,8 @@ export default function App() {
           </div>
           <SpesePieChart spese={spese.filter(s => s.totale > 0)} />
         </div>
+
+        <DisponibilitaCassa strutture={activeStrutture} selected={selected} />
 
         <CumulativeChart strutture={strutture} selected={selected} />
 

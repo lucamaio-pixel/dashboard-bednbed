@@ -40,6 +40,7 @@ function getStrutturaData(struttura) {
     kpi: readKPI(ss),
     transazioni: readPrimaNota(ss),
     speseCategorie: readSpese(ss),
+    saldo: readSaldo(ss),
   };
 }
 
@@ -195,6 +196,46 @@ function readSpese(ss) {
     });
 
     result.push({ categoria: cat, totale: totale, mensili: mensili });
+  }
+
+  return result;
+}
+
+// --------------- SALDO ATTUALE ---------------
+function readSaldo(ss) {
+  const sheet = ss.getSheetByName(CONFIG.sheetNames.primaNotaCassa);
+  const result = { banca: 0, cash: 0, cassaforte: 0, postepay: 0 };
+  if (!sheet) return result;
+
+  const data = sheet.getDataRange().getValues();
+
+  // Cerca la riga/colonna con "SALDO ATTUALE" (o fallback "SALDO PROGRESSIVO")
+  let headerRow = -1, headerCol = -1;
+  const keywords = ['SALDO ATTUALE', 'SALDO PROGRESSIVO', 'SALDO'];
+  outer:
+  for (let r = 0; r < data.length; r++) {
+    for (let c = 0; c < data[r].length; c++) {
+      const cell = String(data[r][c]).toUpperCase().trim();
+      if (keywords.some(k => cell === k)) {
+        headerRow = r;
+        headerCol = c;
+        break outer;
+      }
+    }
+  }
+
+  if (headerRow === -1) return result;
+
+  // Legge le righe successive cercando BANCA/CONTO, CASH, CASSAFORTE, POSTEPAY
+  for (let r = headerRow + 1; r < Math.min(headerRow + 10, data.length); r++) {
+    for (let c = 0; c < data[r].length - 1; c++) {
+      const label = String(data[r][c]).toUpperCase().trim();
+      const val = parseNum(data[r][c + 1]);
+      if (label === 'BANCA' || label === 'CONTO') result.banca = val;
+      else if (label === 'CASH' || label === 'CONTANTI') result.cash = val;
+      else if (label.includes('CASSAFORTE')) result.cassaforte = val;
+      else if (label === 'POSTEPAY') result.postepay = val;
+    }
   }
 
   return result;

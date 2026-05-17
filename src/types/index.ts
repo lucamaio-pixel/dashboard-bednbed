@@ -25,12 +25,20 @@ export interface SpesaCategoria {
   mensili: Record<string, number>;
 }
 
+export interface Saldo {
+  banca: number;
+  cash: number;
+  cassaforte: number;
+  postepay: number;
+}
+
 export interface Struttura {
   id: string;
   nome: string;
   kpi: KPIData[];
   transazioni: Transazione[];
   speseCategorie: SpesaCategoria[];
+  saldo: Saldo;
 }
 
 export interface DashboardData {
