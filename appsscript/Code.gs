@@ -44,9 +44,23 @@ function getStrutturaData(struttura) {
   };
 }
 
+// Trova una scheda per nome ignorando maiuscole/minuscole
+function getSheetCI(ss, name) {
+  const lower = name.toLowerCase();
+  const all = ss.getSheets();
+  // Prima prova corrispondenza esatta
+  for (const s of all) { if (s.getName() === name) return s; }
+  // Poi prova case-insensitive
+  for (const s of all) { if (s.getName().toLowerCase() === lower) return s; }
+  // Poi prova se il nome contiene la parola chiave
+  const keyword = lower.replace(/\s+/g, '');
+  for (const s of all) { if (s.getName().toLowerCase().replace(/\s+/g, '').includes(keyword)) return s; }
+  return null;
+}
+
 // --------------- KPI ---------------
 function readKPI(ss) {
-  const sheet = ss.getSheetByName(CONFIG.sheetNames.kpi);
+  const sheet = getSheetCI(ss, CONFIG.sheetNames.kpi);
   if (!sheet) return [];
 
   const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO',
@@ -97,7 +111,7 @@ function readKPI(ss) {
 
 // --------------- PRIMA NOTA CASSA ---------------
 function readPrimaNota(ss) {
-  const sheet = ss.getSheetByName(CONFIG.sheetNames.primaNotaCassa);
+  const sheet = getSheetCI(ss, CONFIG.sheetNames.primaNotaCassa);
   if (!sheet) return [];
 
   const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO',
@@ -151,7 +165,7 @@ function readPrimaNota(ss) {
 
 // --------------- SPESE PER CATEGORIA ---------------
 function readSpese(ss) {
-  const sheet = ss.getSheetByName(CONFIG.sheetNames.spese);
+  const sheet = getSheetCI(ss, CONFIG.sheetNames.spese);
   if (!sheet) return [];
 
   const CATS = ['PULIZIE','RATE','UTENZE','PRODOTTI PULIZIA','RIPARAZIONI',
@@ -203,7 +217,7 @@ function readSpese(ss) {
 
 // --------------- SALDO ATTUALE ---------------
 function readSaldo(ss) {
-  const sheet = ss.getSheetByName(CONFIG.sheetNames.primaNotaCassa);
+  const sheet = getSheetCI(ss, CONFIG.sheetNames.primaNotaCassa);
   const result = { banca: 0, cash: 0, cassaforte: 0, postepay: 0 };
   if (!sheet) return result;
 
