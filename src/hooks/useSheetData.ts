@@ -7,12 +7,13 @@ export function useSheetData(appsScriptUrl: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [isDemo, setIsDemo] = useState(!appsScriptUrl);
+
+  // Demo = nessun URL configurato
+  const isDemo = !appsScriptUrl;
 
   const fetchData = useCallback(async (url: string) => {
     if (!url) {
       setData(mockData);
-      setIsDemo(true);
       return;
     }
     setLoading(true);
@@ -21,13 +22,11 @@ export function useSheetData(appsScriptUrl: string) {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json: DashboardData = await res.json();
-      // Compatibilità: aggiungi saldo default se mancante
       json.strutture = json.strutture.map(s => ({
         ...s,
         saldo: s.saldo ?? { banca: 0, cash: 0, cassaforte: 0, postepay: 0 },
       }));
       setData(json);
-      setIsDemo(false);
       setLastRefresh(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Errore di connessione');
