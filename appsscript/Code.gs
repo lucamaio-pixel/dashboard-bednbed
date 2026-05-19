@@ -227,7 +227,7 @@ function readSaldo(ss) {
 
   // Cerca la riga/colonna con "SALDO ATTUALE" (o fallback "SALDO PROGRESSIVO")
   let headerRow = -1, headerCol = -1;
-  const keywords = ['SALDO ATTUALE', 'SALDO PROGRESSIVO', 'SALDO'];
+  const keywords = ['SALDO PROGRESSIVO', 'SALDO ATTUALE', 'SALDO'];
   outer:
   for (let r = 0; r < data.length; r++) {
     for (let c = 0; c < data[r].length; c++) {
@@ -243,10 +243,18 @@ function readSaldo(ss) {
   if (headerRow === -1) return result;
 
   // Legge le righe successive cercando BANCA/CONTO, CASH, CASSAFORTE, POSTEPAY
+  // Il valore può essere in qualsiasi colonna dopo l'etichetta (anche con colonne vuote in mezzo)
   for (let r = headerRow + 1; r < Math.min(headerRow + 10, data.length); r++) {
-    for (let c = 0; c < data[r].length - 1; c++) {
-      const label = String(data[r][c]).toUpperCase().trim();
-      const val = parseNum(data[r][c + 1]);
+    const row = data[r];
+    // Trova l'etichetta e poi cerca il primo valore numerico non-zero sulla stessa riga
+    for (let c = 0; c < row.length; c++) {
+      const label = String(row[c]).toUpperCase().trim();
+      if (!label) continue;
+      let val = 0;
+      for (let v = c + 1; v < row.length; v++) {
+        const parsed = parseNum(row[v]);
+        if (parsed !== 0) { val = parsed; break; }
+      }
       if (label === 'BANCA' || label === 'CONTO') result.banca = val;
       else if (label === 'CASH' || label === 'CONTANTI') result.cash = val;
       else if (label.includes('CASSAFORTE')) result.cassaforte = val;
