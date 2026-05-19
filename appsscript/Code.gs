@@ -242,24 +242,28 @@ function readSaldo(ss) {
 
   if (headerRow === -1) return result;
 
-  // Legge le righe successive cercando BANCA/CONTO, CASH, CASSAFORTE, POSTEPAY
-  // Il valore può essere in qualsiasi colonna dopo l'etichetta (anche con colonne vuote in mezzo)
-  for (let r = headerRow + 1; r < Math.min(headerRow + 10, data.length); r++) {
-    const row = data[r];
-    // Trova l'etichetta e poi cerca il primo valore numerico non-zero sulla stessa riga
-    for (let c = 0; c < row.length; c++) {
-      const label = String(row[c]).toUpperCase().trim();
-      if (!label) continue;
-      let val = 0;
-      for (let v = c + 1; v < row.length; v++) {
-        const parsed = parseNum(row[v]);
-        if (parsed !== 0) { val = parsed; break; }
-      }
-      if (label === 'BANCA' || label === 'CONTO') result.banca = val;
-      else if (label === 'CASH' || label === 'CONTANTI') result.cash = val;
-      else if (label.includes('CASSAFORTE')) result.cassaforte = val;
-      else if (label === 'POSTEPAY') result.postepay = val;
+  // Legge SOLO nella colonna dell'intestazione (headerCol) per evitare di confondere
+  // le etichette del saldo (CONTO, CASH) con la colonna PAGATO delle transazioni.
+  // I valori vengono cercati nelle colonne a destra di headerCol.
+  // La cassaforte può avere più righe senza etichetta: si sommano tutte.
+  let lastLabel = '';
+  for (let r = headerRow + 1; r < Math.min(headerRow + 20, data.length); r++) {
+    const label = String(data[r][headerCol] || '').toUpperCase().trim();
+    if (label) lastLabel = label;
+    const effectiveLabel = label || lastLabel;
+
+    // Cerca il primo valore numerico (anche negativo) nelle colonne dopo headerCol
+    let val = 0;
+    for (let v = headerCol + 1; v < data[r].length; v++) {
+      const parsed = parseNum(data[r][v]);
+      if (parsed !== 0) { val = parsed; break; }
     }
+    if (val === 0) continue;
+
+    if (effectiveLabel === 'BANCA' || effectiveLabel === 'CONTO') result.banca += val;
+    else if (effectiveLabel === 'CASH' || effectiveLabel === 'CONTANTI') result.cash += val;
+    else if (effectiveLabel.includes('CASSAFORTE')) result.cassaforte += val;
+    else if (effectiveLabel === 'POSTEPAY') result.postepay += val;
   }
 
   return result;
