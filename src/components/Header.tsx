@@ -7,11 +7,12 @@ interface Props {
   loading: boolean;
   lastRefresh: Date;
   isDemo: boolean;
+  error: string | null;
   onRefresh: () => void;
   onConfig: () => void;
 }
 
-export default function Header({ strutture, selected, onSelect, loading, lastRefresh, isDemo, onRefresh, onConfig }: Props) {
+export default function Header({ strutture, selected, onSelect, loading, lastRefresh, isDemo, error, onRefresh, onConfig }: Props) {
   return (
     <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-4 py-3">
@@ -22,6 +23,8 @@ export default function Header({ strutture, selected, onSelect, loading, lastRef
               <p className="text-xs text-slate-400">
                 {isDemo ? (
                   <span className="text-amber-400">Modalità demo — collega i tuoi Google Sheet</span>
+                ) : error ? (
+                  <span className="text-red-400">Errore: {error} — dati non aggiornati</span>
                 ) : (
                   <>Aggiornato: {lastRefresh.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</>
                 )}

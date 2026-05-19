@@ -21,12 +21,14 @@ function doGet() {
       try {
         return getStrutturaData(s);
       } catch (e) {
-        return { id: s.id, nome: s.nome, kpi: [], transazioni: [], speseCategorie: [], error: e.toString() };
+        return { id: s.id, nome: s.nome, kpi: [], transazioni: [], speseCategorie: [],
+                 saldo: { banca: 0, cash: 0, cassaforte: 0, postepay: 0 }, error: e.toString() };
       }
     }),
     timestamp: new Date().toISOString()
   };
 
+  // Usa HtmlService per poter impostare header Cache-Control e CORS
   const output = ContentService.createTextOutput(JSON.stringify(result));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;

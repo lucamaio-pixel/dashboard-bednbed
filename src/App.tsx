@@ -50,7 +50,7 @@ export default function App() {
   const [selected, setSelected] = useState('tutti');
   const [configOpen, setConfigOpen] = useState(false);
 
-  const { data, loading, lastRefresh, isDemo, refresh } = useSheetData(appsScriptUrl);
+  const { data, loading, error, lastRefresh, isDemo, refresh } = useSheetData(appsScriptUrl);
 
   const strutture = data.strutture;
   const activeStrutture = strutture.filter(s => s.kpi.length > 0);
@@ -76,6 +76,7 @@ export default function App() {
         loading={loading}
         lastRefresh={lastRefresh}
         isDemo={isDemo}
+        error={error}
         onRefresh={refresh}
         onConfig={() => setConfigOpen(true)}
       />
