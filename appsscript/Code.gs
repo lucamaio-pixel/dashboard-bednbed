@@ -225,45 +225,65 @@ function readSaldo(ss) {
 
   const data = sheet.getDataRange().getValues();
 
-  // Cerca la riga/colonna con "SALDO ATTUALE" (o fallback "SALDO PROGRESSIVO")
+  // Cerca l'intestazione: prima SALDO PROGRESSIVO, poi SALDO ATTUALE
   let headerRow = -1, headerCol = -1;
-  const keywords = ['SALDO PROGRESSIVO', 'SALDO ATTUALE', 'SALDO'];
-  outer:
-  for (let r = 0; r < data.length; r++) {
-    for (let c = 0; c < data[r].length; c++) {
-      const cell = String(data[r][c]).toUpperCase().trim();
-      if (keywords.some(k => cell === k)) {
-        headerRow = r;
-        headerCol = c;
-        break outer;
+  const keywords = ['SALDO PROGRESSIVO', 'SALDO ATTUALE'];
+  for (const kw of keywords) {
+    for (let r = 0; r < data.length && headerRow === -1; r++) {
+      for (let c = 0; c < data[r].length; c++) {
+        if (String(data[r][c]).toUpperCase().trim() === kw) {
+          headerRow = r;
+          headerCol = c;
+          break;
+        }
       }
     }
+    if (headerRow !== -1) break;
   }
 
   if (headerRow === -1) return result;
 
-  // Legge SOLO nella colonna dell'intestazione (headerCol) per evitare di confondere
-  // le etichette del saldo (CONTO, CASH) con la colonna PAGATO delle transazioni.
-  // I valori vengono cercati nelle colonne a destra di headerCol.
-  // La cassaforte può avere più righe senza etichetta: si sommano tutte.
-  let lastLabel = '';
-  for (let r = headerRow + 1; r < Math.min(headerRow + 20, data.length); r++) {
-    const label = String(data[r][headerCol] || '').toUpperCase().trim();
-    if (label) lastLabel = label;
-    const effectiveLabel = label || lastLabel;
+  const isSaldoLabel = s =>
+    s === 'BANCA' || s === 'CONTO' || s === 'CASH' || s === 'CONTANTI' ||
+    s === 'POSTEPAY' || s.includes('CASSAFORTE');
 
-    // Cerca il primo valore numerico (anche negativo) nelle colonne dopo headerCol
-    let val = 0;
-    for (let v = headerCol + 1; v < data[r].length; v++) {
-      const parsed = parseNum(data[r][v]);
-      if (parsed !== 0) { val = parsed; break; }
+  // Le etichette possono stare nella colonna dell'intestazione o 1-2 colonne a sinistra
+  const colMin = Math.max(0, headerCol - 2);
+  const colMax = headerCol + 1;
+
+  let lastLabel = '', lastValCol = -1;
+  for (let r = headerRow + 1; r < Math.min(headerRow + 15, data.length); r++) {
+    const row = data[r];
+
+    let label = '', labelCol = -1;
+    for (let c = colMin; c <= colMax && c < row.length; c++) {
+      const cell = String(row[c]).toUpperCase().trim();
+      if (isSaldoLabel(cell)) { label = cell; labelCol = c; break; }
     }
-    if (val === 0) continue;
 
-    if (effectiveLabel === 'BANCA' || effectiveLabel === 'CONTO') result.banca += val;
-    else if (effectiveLabel === 'CASH' || effectiveLabel === 'CONTANTI') result.cash += val;
-    else if (effectiveLabel.includes('CASSAFORTE')) result.cassaforte += val;
-    else if (effectiveLabel === 'POSTEPAY') result.postepay += val;
+    let val = 0;
+    if (label) {
+      // Primo valore numerico a destra dell'etichetta (anche negativo)
+      for (let v = labelCol + 1; v < row.length; v++) {
+        if (row[v] === '' || row[v] === null) continue;
+        const parsed = parseNum(row[v]);
+        if (parsed !== 0) { val = parsed; lastValCol = v; break; }
+      }
+      lastLabel = label;
+    } else if (lastLabel.includes('CASSAFORTE') && lastValCol !== -1) {
+      // La cassaforte può avere più versamenti su righe successive senza etichetta:
+      // il valore sta nella stessa colonna del primo versamento
+      val = parseNum(row[lastValCol]);
+      if (val === 0) { lastLabel = ''; continue; }
+      label = lastLabel;
+    } else {
+      continue;
+    }
+
+    if (label === 'BANCA' || label === 'CONTO') result.banca += val;
+    else if (label === 'CASH' || label === 'CONTANTI') result.cash += val;
+    else if (label.includes('CASSAFORTE')) result.cassaforte += val;
+    else if (label === 'POSTEPAY') result.postepay += val;
   }
 
   return result;
@@ -273,7 +293,13 @@ function readSaldo(ss) {
 function parseNum(val) {
   if (val === null || val === undefined || val === '') return 0;
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
-  const s = String(val).replace(/[€\s]/g, '').replace(',', '.');
+  let s = String(val).replace(/[€\s]/g, '');
+  // Formato italiano "1.234,56": rimuovi i punti delle migliaia, virgola -> punto
+  if (/,\d{1,2}$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(',', '.');
+  }
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
