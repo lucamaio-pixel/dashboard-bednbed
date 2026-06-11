@@ -57,11 +57,16 @@ export default function DisponibilitaCassa({ strutture, selected }: Props) {
   const totalPostepay   = activeStrutture.reduce((s, st) => s + st.saldo.postepay, 0);
   const totale = totalBanca + totalCash + totalCassaforte + totalPostepay;
 
-  // Calcola delta mensile e cumulativo dalle transazioni
+  // Calcola delta mensile e cumulativo dalle transazioni.
+  // Esclude i trasferimenti interni (tra strutture o verso la cassaforte):
+  // non sono vere entrate/uscite, solo spostamenti di denaro.
+  const isTrasferimento = (desc: string) => desc.toLowerCase().includes('trasferiment');
   const deltaPerMese: Record<number, number> = {};
-  activeStrutture.flatMap(s => s.transazioni).forEach(t => {
-    deltaPerMese[t.indice] = (deltaPerMese[t.indice] || 0) + t.entrata - t.uscita;
-  });
+  activeStrutture.flatMap(s => s.transazioni)
+    .filter(t => !isTrasferimento(t.descrizione))
+    .forEach(t => {
+      deltaPerMese[t.indice] = (deltaPerMese[t.indice] || 0) + t.entrata - t.uscita;
+    });
 
   let cumulativo = 0;
   const cumulativoData = MONTHS_SHORT
