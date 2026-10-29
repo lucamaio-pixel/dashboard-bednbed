@@ -182,24 +182,42 @@ function readSpese(ss) {
   let headerRow = -1;
   let monthCols = {};
 
+  // Serve la riga con TUTTI i mesi, non una qualsiasi che contenga un mese:
+  // la riga "Anno fiscale: GEN 2026" contiene "GEN" e altrimenti la catturerebbe,
+  // facendo leggere una sola colonna e per di più quella sbagliata.
   for (let r = 0; r < Math.min(data.length, 10); r++) {
     const row = data[r].map(c => String(c).toUpperCase().trim());
-    if (row.some(c => MONTH_KEYS.some(mk => c.startsWith(mk)))) {
+    const cols = {};
+    row.forEach((h, ci) => {
+      const mk = MONTH_KEYS.find(m => h.startsWith(m));
+      if (mk && cols[mk] === undefined) cols[mk] = ci;
+    });
+    if (Object.keys(cols).length >= 6) {
       headerRow = r;
-      row.forEach((h, ci) => {
-        const mk = MONTH_KEYS.find(m => h.startsWith(m));
-        if (mk && !monthCols[mk]) monthCols[mk] = ci;
-      });
+      monthCols = cols;
       break;
     }
   }
 
   if (headerRow === -1) return [];
 
+  // Prima colonna occupata dai mesi: l'etichetta della categoria sta a sinistra di questa
+  let firstMonthCol = Infinity;
+  MONTH_KEYS.forEach(mk => {
+    if (monthCols[mk] !== undefined && monthCols[mk] < firstMonthCol) firstMonthCol = monthCols[mk];
+  });
+  if (firstMonthCol === Infinity) return [];
+
   for (let r = headerRow + 1; r < data.length; r++) {
     const row = data[r];
-    const cat = String(row[0] || '').trim().toUpperCase();
-    if (!CATS.some(c => cat.includes(c))) continue;
+    // La categoria non è sempre in colonna A: nei fogli sta in colonna B e la A è vuota.
+    // La si cerca in tutte le colonne che precedono quelle dei mesi.
+    let cat = '';
+    for (let c = 0; c < Math.min(firstMonthCol, row.length); c++) {
+      const v = String(row[c] || '').trim().toUpperCase();
+      if (v && CATS.some(k => v.includes(k))) { cat = v; break; }
+    }
+    if (!cat) continue;
 
     const mensili = {};
     let totale = 0;
@@ -297,6 +315,10 @@ function parseNum(val) {
   // Formato italiano "1.234,56": rimuovi i punti delle migliaia, virgola -> punto
   if (/,\d{1,2}$/.test(s)) {
     s = s.replace(/\./g, '').replace(',', '.');
+  } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+    // "1.500" senza decimali: punti di migliaia, non un separatore decimale.
+    // Senza questo ramo parseFloat leggerebbe 1,5 al posto di 1500.
+    s = s.replace(/\./g, '');
   } else {
     s = s.replace(',', '.');
   }
