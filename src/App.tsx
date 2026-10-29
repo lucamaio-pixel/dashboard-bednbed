@@ -29,6 +29,13 @@ function consolidateKPI(strutture: Struttura[]): KPIData[] {
   });
 }
 
+// Voci che non sono costi operativi: rate e estinzioni del mutuo abbattono il debito,
+// i dividendi sono distribuzione dell'utile. Restano fuori dalla torta delle spese,
+// così il totale coincide con la card "Spese YTD — costi operativi".
+const NON_OPERATIVE = ['RATE', 'RIPROTEZIONE', 'DIVIDENDO'];
+const isCostoOperativo = (categoria: string) =>
+  !NON_OPERATIVE.some(k => categoria.toUpperCase().includes(k));
+
 function consolidateSpese(strutture: Struttura[]): SpesaCategoria[] {
   const map: Record<string, SpesaCategoria> = {};
   strutture.flatMap(s => s.speseCategorie).forEach(item => {
@@ -88,7 +95,7 @@ export default function App() {
           <div className="xl:col-span-2">
             <CashflowChart kpi={kpi} />
           </div>
-          <SpesePieChart spese={spese.filter(s => s.totale > 0)} />
+          <SpesePieChart spese={spese.filter(s => s.totale > 0 && isCostoOperativo(s.categoria))} />
         </div>
 
         <DisponibilitaCassa strutture={activeStrutture} selected={selected} />
