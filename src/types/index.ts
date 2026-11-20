@@ -39,9 +39,16 @@ export interface Struttura {
   transazioni: Transazione[];
   speseCategorie: SpesaCategoria[];
   saldo: Saldo;
+  // Presente quando l'Apps Script non è riuscito a leggere questo foglio:
+  // le altre strutture tornano comunque con i loro dati.
+  error?: string;
 }
 
 export interface DashboardData {
   strutture: Struttura[];
   timestamp: string;
+  // Opzionali: un Apps Script non ancora ridistribuito non li manda.
+  anno?: number;
+  anniDisponibili?: number[];
+  error?: string;
 }

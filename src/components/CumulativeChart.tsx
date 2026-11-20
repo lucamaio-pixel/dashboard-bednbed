@@ -2,11 +2,14 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { Struttura } from '../types';
-import { MONTHS_SHORT, CURRENT_MONTH_IDX, euro } from '../utils/formatters';
+import { MONTHS_SHORT, euro, AnnoMode } from '../utils/formatters';
 
 interface Props {
   strutture: Struttura[];
   selected: string;
+  anno: number;
+  cutoff: number;
+  mode: AnnoMode;
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'];
@@ -23,7 +26,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   );
 };
 
-export default function CumulativeChart({ strutture, selected }: Props) {
+export default function CumulativeChart({ strutture, selected, anno, cutoff, mode }: Props) {
   const activeSrutture = selected === 'tutti'
     ? strutture.filter(s => s.kpi.length > 0)
     : strutture.filter(s => s.id === selected && s.kpi.length > 0);
@@ -89,7 +92,11 @@ export default function CumulativeChart({ strutture, selected }: Props) {
         </AreaChart>
       </ResponsiveContainer>
       <p className="text-xs text-slate-500 mt-2 text-center">
-        Mese corrente: {MONTHS_SHORT[CURRENT_MONTH_IDX - 1]} — i mesi successivi includono prenotazioni già confermate
+        {mode === 'corrente'
+          ? `Mese corrente: ${MONTHS_SHORT[cutoff - 1]} — i mesi successivi includono prenotazioni già confermate`
+          : mode === 'futuro'
+            ? `Anno ${anno} — solo prenotazioni già confermate, nessun consuntivo`
+            : `Anno ${anno} — consuntivo chiuso`}
       </p>
     </div>
   );

@@ -1,9 +1,10 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { SpesaCategoria } from '../types';
-import { euro } from '../utils/formatters';
+import { euro, labelPeriodo, AnnoMode } from '../utils/formatters';
 
 interface Props {
   spese: SpesaCategoria[];
+  mode: AnnoMode;
 }
 
 const COLORS = ['#3b82f6','#8b5cf6','#f59e0b','#ef4444','#10b981','#06b6d4','#ec4899','#84cc16'];
@@ -33,7 +34,7 @@ const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: {
   );
 };
 
-export default function SpesePieChart({ spese }: Props) {
+export default function SpesePieChart({ spese, mode }: Props) {
   const data = spese.filter(s => s.totale > 0).sort((a, b) => b.totale - a.totale);
   const totale = data.reduce((s, d) => s + d.totale, 0);
 
@@ -48,7 +49,7 @@ export default function SpesePieChart({ spese }: Props) {
   return (
     <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
       <h2 className="text-white font-semibold mb-2">Spese per Categoria</h2>
-      <p className="text-slate-400 text-xs mb-3">Totale YTD: {euro(totale)}</p>
+      <p className="text-slate-400 text-xs mb-3">Totale {labelPeriodo(mode)}: {euro(totale)}</p>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie

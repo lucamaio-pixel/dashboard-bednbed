@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Struttura, KPIData, SpesaCategoria } from './types';
 import { useSheetData } from './hooks/useSheetData';
 import Header from './components/Header';
@@ -9,7 +9,7 @@ import SpesePieChart from './components/SpesePieChart';
 import RecentTransactions from './components/RecentTransactions';
 import ConfigModal from './components/ConfigModal';
 import DisponibilitaCassa from './components/DisponibilitaCassa';
-import { MONTHS_FULL } from './utils/formatters';
+import { MONTHS_FULL, annoMode, meseCutoff } from './utils/formatters';
 
 function consolidateKPI(strutture: Struttura[]): KPIData[] {
   return MONTHS_FULL.map((mese, i) => {
@@ -57,7 +57,30 @@ export default function App() {
   const [selected, setSelected] = useState('tutti');
   const [configOpen, setConfigOpen] = useState(false);
 
-  const { data, loading, error, lastRefresh, isDemo, refresh } = useSheetData(appsScriptUrl);
+  // Ultimo anno guardato; alla prima apertura, l'anno di calendario.
+  const [anno, setAnno] = useState<number>(
+    () => Number(localStorage.getItem('anno')) || new Date().getFullYear()
+  );
+
+  const { data, loading, error, lastRefresh, isDemo, refresh } = useSheetData(appsScriptUrl, anno);
+
+  // La lista degli anni la decide l'Apps Script, così aggiungerne uno non
+  // richiede di ridistribuire la dashboard. Uno script vecchio non la manda.
+  const anni = data.anniDisponibili ?? [];
+  const mode = annoMode(anno);
+  const cutoff = meseCutoff(anno);
+
+  const selectAnno = (a: number) => {
+    setAnno(a);
+    localStorage.setItem('anno', String(a));
+  };
+
+  // Se l'anno ricordato non è (più) servito dallo script, allineati a quello
+  // che lo script ha effettivamente restituito, invece di insistere a chiederne
+  // uno che non esiste.
+  useEffect(() => {
+    if (data.anno && data.anno !== anno) selectAnno(data.anno);
+  }, [data.anno]);
 
   const strutture = data.strutture;
   const activeStrutture = strutture.filter(s => s.kpi.length > 0);
@@ -86,21 +109,27 @@ export default function App() {
         error={error}
         onRefresh={refresh}
         onConfig={() => setConfigOpen(true)}
+        anni={anni}
+        anno={anno}
+        onSelectAnno={selectAnno}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-5">
-        <KPICards kpi={kpi} />
+        <KPICards kpi={kpi} cutoff={cutoff} mode={mode} />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <div className="xl:col-span-2">
-            <CashflowChart kpi={kpi} />
+            <CashflowChart kpi={kpi} cutoff={cutoff} />
           </div>
-          <SpesePieChart spese={spese.filter(s => s.totale > 0 && isCostoOperativo(s.categoria))} />
+          <SpesePieChart
+            spese={spese.filter(s => s.totale > 0 && isCostoOperativo(s.categoria))}
+            mode={mode}
+          />
         </div>
 
-        <DisponibilitaCassa strutture={activeStrutture} selected={selected} />
+        <DisponibilitaCassa strutture={activeStrutture} selected={selected} cutoff={cutoff} mode={mode} />
 
-        <CumulativeChart strutture={strutture} selected={selected} />
+        <CumulativeChart strutture={strutture} selected={selected} anno={anno} cutoff={cutoff} mode={mode} />
 
         <RecentTransactions transazioni={transazioni} />
       </main>

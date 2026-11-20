@@ -3,11 +3,13 @@ import {
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 import { Struttura } from '../types';
-import { euro, MONTHS_SHORT, CURRENT_MONTH_IDX } from '../utils/formatters';
+import { euro, MONTHS_SHORT, ultimoMeseVisibile, labelPeriodo, AnnoMode } from '../utils/formatters';
 
 interface Props {
   strutture: Struttura[];
   selected: string;
+  cutoff: number;
+  mode: AnnoMode;
 }
 
 const TooltipCumulativo = ({ active, payload, label }: {
@@ -46,7 +48,7 @@ const TooltipDelta = ({ active, payload, label }: {
   );
 };
 
-export default function DisponibilitaCassa({ strutture, selected }: Props) {
+export default function DisponibilitaCassa({ strutture, selected, cutoff, mode }: Props) {
   const activeStrutture = selected === 'tutti'
     ? strutture
     : strutture.filter(s => s.id === selected);
@@ -68,6 +70,13 @@ export default function DisponibilitaCassa({ strutture, selected }: Props) {
       deltaPerMese[t.indice] = (deltaPerMese[t.indice] || 0) + t.entrata - t.uscita;
     });
 
+  // Su un anno futuro il consuntivo è a zero, ma i movimenti già registrati
+  // (saldi di apertura, caparre) vanno comunque mostrati.
+  const fine = ultimoMeseVisibile(
+    cutoff,
+    Object.keys(deltaPerMese).filter(k => deltaPerMese[Number(k)] !== 0).map(Number),
+  );
+
   let cumulativo = 0;
   const cumulativoData = MONTHS_SHORT
     .map((name, i) => {
@@ -76,7 +85,7 @@ export default function DisponibilitaCassa({ strutture, selected }: Props) {
       cumulativo += delta;
       return { name, idx, delta, cumulativo: Math.round(cumulativo * 100) / 100 };
     })
-    .filter(d => d.idx <= CURRENT_MONTH_IDX);
+    .filter(d => d.idx <= fine);
 
   const deltaData = MONTHS_SHORT
     .map((name, i) => ({
@@ -84,7 +93,7 @@ export default function DisponibilitaCassa({ strutture, selected }: Props) {
       idx: i + 1,
       delta: Math.round((deltaPerMese[i + 1] || 0) * 100) / 100,
     }))
-    .filter(d => d.idx <= CURRENT_MONTH_IDX);
+    .filter(d => d.idx <= fine);
 
   return (
     <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
@@ -165,7 +174,7 @@ export default function DisponibilitaCassa({ strutture, selected }: Props) {
       {cumulativoData.length > 0 && (
         <>
           <p className="text-xs text-slate-400 mb-2">
-            Crescita cumulativa YTD — disponibile netto accumulato mese per mese (entrate − uscite)
+            Crescita cumulativa {labelPeriodo(mode)} — disponibile netto accumulato mese per mese (entrate − uscite)
           </p>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={cumulativoData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>

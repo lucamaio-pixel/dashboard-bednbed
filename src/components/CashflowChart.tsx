@@ -2,10 +2,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { KPIData } from '../types';
-import { MONTHS_SHORT, CURRENT_MONTH_IDX, euro } from '../utils/formatters';
+import { MONTHS_SHORT, ultimoMeseVisibile, euro } from '../utils/formatters';
 
 interface Props {
   kpi: KPIData[];
+  cutoff: number;
 }
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
@@ -20,16 +21,21 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   );
 };
 
-export default function CashflowChart({ kpi }: Props) {
+export default function CashflowChart({ kpi, cutoff }: Props) {
+  const fine = ultimoMeseVisibile(
+    cutoff,
+    kpi.filter(k => k.ricavo > 0 || k.spese > 0).map(k => k.indice),
+  );
+
   const data = kpi.map(k => ({
     name: MONTHS_SHORT[k.indice - 1],
     indice: k.indice,
     Ricavi: k.ricavo,
     Spese: k.spese,
     'Utile Netto': k.utileNetto,
-    isForecast: k.indice > CURRENT_MONTH_IDX,
+    isForecast: k.indice > cutoff,
     hasData: k.ricavo > 0 || k.spese > 0,
-  })).filter(d => d.hasData || d.indice <= CURRENT_MONTH_IDX);
+  })).filter(d => d.indice <= fine);
 
   return (
     <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">

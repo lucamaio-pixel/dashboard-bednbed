@@ -2,11 +2,26 @@
 // CONFIGURAZIONE — modifica questi valori
 // ============================================================
 const CONFIG = {
-  strutture: [
-    { id: 'policlinico', nome: 'Policlinico', spreadsheetId: '1_EQcpCIxVSVClTWGd3WV63I3otQ3QGMRNN9AwsKcgyo' },
-    { id: 'atelier',     nome: 'Atelier',     spreadsheetId: '1efYS5g0m_MCZ7mqCoOxQDVFv6y2EQj_Jyqt6Rlh8yyY' },
-    { id: 'ganzirri',    nome: 'Ganzirri',    spreadsheetId: '1Xhq6c_RfKqGYVdTId6e19wxLcmOXVD7RkD08DsBySu8' },
-  ],
+  // Anno servito quando la richiesta non ne specifica uno (dashboard vecchie,
+  // apertura diretta dell'URL del web app senza parametri).
+  annoDefault: 2026,
+
+  // Un gruppo di fogli per anno. Per aggiungere il 2028 basta una voce qui:
+  // la dashboard costruisce i bottoni dell'anno da questa lista, quindi non
+  // va ridistribuita.
+  anni: {
+    2026: [
+      { id: 'policlinico', nome: 'Policlinico', spreadsheetId: '1_EQcpCIxVSVClTWGd3WV63I3otQ3QGMRNN9AwsKcgyo' },
+      { id: 'atelier',     nome: 'Atelier',     spreadsheetId: '1efYS5g0m_MCZ7mqCoOxQDVFv6y2EQj_Jyqt6Rlh8yyY' },
+      { id: 'ganzirri',    nome: 'Ganzirri',    spreadsheetId: '1Xhq6c_RfKqGYVdTId6e19wxLcmOXVD7RkD08DsBySu8' },
+    ],
+    2027: [
+      { id: 'policlinico', nome: 'Policlinico', spreadsheetId: '1Sv3D2DA9yGONf0XEDiADvJGdTipQPFjrrClCeiO66Pw' },
+      { id: 'atelier',     nome: 'Atelier',     spreadsheetId: '129o1NpLT7l3M8hUFZOWaBpLv3BkjJ5x7RIgOm9o9eoo' },
+      { id: 'ganzirri',    nome: 'Ganzirri',    spreadsheetId: '1NmiaZkdbOiWgOo35JcrWPClUurc_6w2Tp8uE-JZvTjo' },
+    ],
+  },
+
   sheetNames: {
     kpi:          'KPI',             // nome della scheda KPI
     primaNotaCassa: 'Prima nota cassa',
@@ -15,9 +30,33 @@ const CONFIG = {
 };
 // ============================================================
 
-function doGet() {
+// Anni configurati, ordinati crescenti: le chiavi di un oggetto sono stringhe.
+function anniDisponibili() {
+  return Object.keys(CONFIG.anni).map(Number).sort(function (a, b) { return a - b; });
+}
+
+function doGet(e) {
+  // Il parametro di query arriva sempre come stringa; CONFIG.anni ha chiavi
+  // numeriche, ma l'accesso per indice le confronta come stringhe, quindi
+  // normalizziamo a numero e torniamo alla stringa solo per indicizzare.
+  const richiesto = e && e.parameter && e.parameter.anno;
+  const anno = Number(richiesto) || CONFIG.annoDefault;
+  const strutture = CONFIG.anni[String(anno)];
+
+  if (!strutture) {
+    const errore = ContentService.createTextOutput(JSON.stringify({
+      strutture: [],
+      anno: anno,
+      anniDisponibili: anniDisponibili(),
+      timestamp: new Date().toISOString(),
+      error: 'Anno ' + anno + ' non configurato',
+    }));
+    errore.setMimeType(ContentService.MimeType.JSON);
+    return errore;
+  }
+
   const result = {
-    strutture: CONFIG.strutture.map(s => {
+    strutture: strutture.map(s => {
       try {
         return getStrutturaData(s);
       } catch (e) {
@@ -25,6 +64,8 @@ function doGet() {
                  saldo: { banca: 0, cash: 0, cassaforte: 0, postepay: 0 }, error: e.toString() };
       }
     }),
+    anno: anno,
+    anniDisponibili: anniDisponibili(),
     timestamp: new Date().toISOString()
   };
 
@@ -183,7 +224,7 @@ function readSpese(ss) {
   let monthCols = {};
 
   // Serve la riga con TUTTI i mesi, non una qualsiasi che contenga un mese:
-  // la riga "Anno fiscale: GEN 2026" contiene "GEN" e altrimenti la catturerebbe,
+  // la riga "Anno fiscale: GEN <anno>" contiene "GEN" e altrimenti la catturerebbe,
   // facendo leggere una sola colonna e per di più quella sbagliata.
   for (let r = 0; r < Math.min(data.length, 10); r++) {
     const row = data[r].map(c => String(c).toUpperCase().trim());

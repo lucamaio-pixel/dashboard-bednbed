@@ -4,7 +4,7 @@ import { mockData } from '../data/mockData';
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 minuti
 
-export function useSheetData(appsScriptUrl: string) {
+export function useSheetData(appsScriptUrl: string, anno: number) {
   const [data, setData] = useState<DashboardData>(mockData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +22,10 @@ export function useSheetData(appsScriptUrl: string) {
     setLoading(true);
     setError(null);
     try {
-      // Parametro cache-busting per evitare risposte cachate da Google CDN e dal browser
+      // `anno` seleziona il gruppo di fogli lato Apps Script; `t` è cache-busting
+      // per evitare risposte cachate da Google CDN e dal browser.
       const separator = url.includes('?') ? '&' : '?';
-      const res = await fetch(`${url}${separator}t=${Date.now()}`, {
+      const res = await fetch(`${url}${separator}anno=${anno}&t=${Date.now()}`, {
         cache: 'no-store',
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -41,7 +42,7 @@ export function useSheetData(appsScriptUrl: string) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [anno]);
 
   useEffect(() => {
     fetchData(appsScriptUrl);

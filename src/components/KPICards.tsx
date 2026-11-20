@@ -1,8 +1,10 @@
 import { KPIData } from '../types';
-import { euro, CURRENT_MONTH_IDX } from '../utils/formatters';
+import { euro, labelPeriodo, AnnoMode } from '../utils/formatters';
 
 interface Props {
   kpi: KPIData[];
+  cutoff: number;
+  mode: AnnoMode;
 }
 
 function Card({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
@@ -15,9 +17,20 @@ function Card({ label, value, sub, color }: { label: string; value: string; sub?
   );
 }
 
-export default function KPICards({ kpi }: Props) {
-  const actual = kpi.filter(k => k.indice <= CURRENT_MONTH_IDX);
-  const confirmed = kpi.filter(k => k.indice > CURRENT_MONTH_IDX && k.ricavo > 0);
+export default function KPICards({ kpi, cutoff, mode }: Props) {
+  const per = labelPeriodo(mode);
+
+  // Su un anno futuro non c'è consuntivo: il totale utile è quello che è già
+  // a libro, cioè tutti i mesi che hanno ricavo.
+  const actual = mode === 'futuro'
+    ? kpi.filter(k => k.ricavo > 0)
+    : kpi.filter(k => k.indice <= cutoff);
+
+  // "Confermati" significa "oltre il mese corrente": ha senso solo sull'anno
+  // in corso, dove c'è un confine fra consuntivo e prenotato.
+  const confirmed = mode === 'corrente'
+    ? kpi.filter(k => k.indice > cutoff && k.ricavo > 0)
+    : [];
 
   const ricavoYTD = actual.reduce((s, k) => s + k.ricavo, 0);
   const speseYTD  = actual.reduce((s, k) => s + k.spese, 0);
@@ -32,19 +45,19 @@ export default function KPICards({ kpi }: Props) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card
-        label="Ricavo YTD"
+        label={`Ricavo ${per}`}
         value={euro(ricavoYTD)}
-        sub={`+${euro(ricavoFuture)} confermati`}
+        sub={confirmed.length ? `+${euro(ricavoFuture)} confermati` : undefined}
         color="text-blue-400"
       />
       <Card
-        label="Spese YTD"
+        label={`Spese ${per}`}
         value={euro(speseYTD)}
         sub="costi operativi"
         color="text-red-400"
       />
       <Card
-        label="Utile Netto YTD"
+        label={`Utile Netto ${per}`}
         value={euro(utileYTD)}
         sub={ricavoYTD > 0 ? `margine ${((utileYTD / ricavoYTD) * 100).toFixed(0)}%` : ''}
         color="text-emerald-400"

@@ -10,9 +10,16 @@ interface Props {
   error: string | null;
   onRefresh: () => void;
   onConfig: () => void;
+  anni: number[];
+  anno: number;
+  onSelectAnno: (anno: number) => void;
 }
 
-export default function Header({ strutture, selected, onSelect, loading, lastRefresh, isDemo, error, onRefresh, onConfig }: Props) {
+export default function Header({ strutture, selected, onSelect, loading, lastRefresh, isDemo, error, onRefresh, onConfig, anni, anno, onSelectAnno }: Props) {
+  // L'anno va detto a schermo solo quando non è quello di calendario: altrimenti
+  // è facile leggere i numeri del 2027 credendoli quelli di oggi.
+  const annoDaSegnalare = anno !== new Date().getFullYear() ? anno : null;
+
   return (
     <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-4 py-3">
@@ -26,7 +33,12 @@ export default function Header({ strutture, selected, onSelect, loading, lastRef
                 ) : error ? (
                   <span className="text-red-400">Errore: {error} — dati non aggiornati</span>
                 ) : (
-                  <>Aggiornato: {lastRefresh.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</>
+                  <>
+                    {annoDaSegnalare && (
+                      <span className="text-amber-400 font-semibold">Anno {annoDaSegnalare} · </span>
+                    )}
+                    Aggiornato: {lastRefresh.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                  </>
                 )}
               </p>
             </div>
@@ -54,6 +66,22 @@ export default function Header({ strutture, selected, onSelect, loading, lastRef
                 </button>
               ))}
             </div>
+
+            {anni.length > 1 && (
+              <div className="flex bg-slate-900 rounded-lg p-0.5 gap-0.5">
+                {anni.map(a => (
+                  <button
+                    key={a}
+                    onClick={() => onSelectAnno(a)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      anno === a ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={onRefresh}
