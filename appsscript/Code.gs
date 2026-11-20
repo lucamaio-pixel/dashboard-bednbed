@@ -263,7 +263,7 @@ function readSaldo(ss) {
 
   const isSaldoLabel = s =>
     s === 'BANCA' || s === 'CONTO' || s === 'CASH' || s === 'CONTANTI' ||
-    s === 'POSTEPAY' || s.includes('CASSAFORTE');
+    s === 'POSTEPAY' || s === 'FINECO' || s.includes('CASSAFORTE');
 
   // Le etichette possono stare nella colonna dell'intestazione o 1-2 colonne a sinistra
   const colMin = Math.max(0, headerCol - 2);
@@ -301,7 +301,10 @@ function readSaldo(ss) {
     if (label === 'BANCA' || label === 'CONTO') result.banca += val;
     else if (label === 'CASH' || label === 'CONTANTI') result.cash += val;
     else if (label.includes('CASSAFORTE')) result.cassaforte += val;
-    else if (label === 'POSTEPAY') result.postepay += val;
+    // FINECO: il conto di investimento Atelier, registrato riusando la casella
+    // POSTEPAY del foglio. Entrambe le etichette finiscono nello stesso saldo,
+    // cosi' la dashboard regge sia prima sia dopo l'eventuale rinomina.
+    else if (label === 'POSTEPAY' || label === 'FINECO') result.postepay += val;
   }
 
   return result;
